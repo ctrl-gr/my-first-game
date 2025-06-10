@@ -5,10 +5,20 @@ export class Game extends Scene
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
     msg_text : Phaser.GameObjects.Text;
+    player: Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
+    enemy: Phaser.GameObjects.Rectangle;
+    controls: Phaser.Types.Input.Keyboard.CursorKeys;
 
     constructor ()
     {
         super('Game');
+    }
+
+    preload ()
+    {
+        this.load.setBaseURL('http://localhost:8080');
+        this.load.image('green_rectangle', 'assets/Green_rectangle.png');
+        this.load.image('red_rectangle', 'assets/Red_rectangle.png');
     }
 
     create ()
@@ -19,17 +29,19 @@ export class Game extends Scene
         this.background = this.add.image(512, 384, 'background');
         this.background.setAlpha(0.5);
 
-        this.msg_text = this.add.text(512, 384, 'Make something fun!\nand share it with us:\nsupport@phaser.io', {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
-        });
-        this.msg_text.setOrigin(0.5);
+        this.controls = this.input.keyboard!.createCursorKeys();
 
-        this.input.once('pointerdown', () => {
+        this.player = this.physics.add.image(10,10, 'green_rectangle');
+        this.enemy = this.add.rectangle(358, 358, 50, 50, 0xff0000);
+        
+    }
 
-            this.scene.start('GameOver');
-
-        });
+    update() {
+        if (this.controls.left.isDown) {
+            this.player.setVelocity(-30);
+        } else if(this.controls.right.isDown) {
+            this.player.setVelocity(30);
+        }
+        //set velocity enemy per coseno timestamp 
     }
 }
