@@ -9,6 +9,7 @@ export class Game extends Scene
     enemy: Phaser.GameObjects.Rectangle;
     obstacle: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     controls: Phaser.Types.Input.Keyboard.CursorKeys;
+    projectiles: Phaser.Physics.Arcade.Sprite[] = [];
 
     constructor ()
     {
@@ -17,10 +18,10 @@ export class Game extends Scene
 
     preload ()
     {
-        this.load.setBaseURL('http://localhost:8080');
-         this.load.spritesheet('cat', 'assets/cat.png', { frameWidth: 32, frameHeight: 32 });
-         this.load.spritesheet('mushroom', 'assets/mushroom.png', { frameWidth: 80, frameHeight: 64 });
-         this.load.spritesheet('plant', 'assets/plant.png', { frameWidth: 44, frameHeight: 42 });
+        this.load.setBaseURL('http://localhost:8081');
+        this.load.spritesheet('cat', 'assets/cat.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('mushroom', 'assets/mushroom.png', { frameWidth: 80, frameHeight: 64 });
+        this.load.spritesheet('plant', 'assets/plant.png', { frameWidth: 44, frameHeight: 42 });
     }
 
     create ()
@@ -36,15 +37,20 @@ export class Game extends Scene
             frames: this.anims.generateFrameNumbers('cat'),
             frameRate: 16
         });
-    
-       
+
         this.controls = this.input.keyboard!.createCursorKeys();
 
-        this.player = this.physics.add.sprite(10, 10, 'cat').setScale(2).setCollideWorldBounds(true);;
+        this.player = this.physics.add.sprite(10, 10, 'cat').setScale(2).setCollideWorldBounds(true);
         this.player.body.setAllowGravity(false)
         this.player.play({ key: 'cat', repeat: -1 });
-        
+
         this.enemy = this.add.rectangle(358, 358, 50, 50, 0xff0000);
+        this.physics.add.existing(this.enemy);
+        (this.enemy.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+        (this.enemy.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+        this.enemy.setData('type', 'enemy');
+        this.enemy.setData('life', 3);
+
         this.obstacle = this.physics.add.sprite(200, 200, 'plant').setCollideWorldBounds(true);
         this.obstacle.setPushable(false);
         this.obstacle.setData('type', 'obstacle');
@@ -61,29 +67,42 @@ export class Game extends Scene
     update() {
         this.player.setVelocity(0,0);
         if (this.controls.left.isDown) {
-            this.player.setVelocity(-30, 0);
+            this.player.setVelocity(-100, 0);
         } else if(this.controls.right.isDown) {
-            this.player.setVelocity(30, 0);
+            this.player.setVelocity(100, 0);
         }
 
-        if (this.controls.space.isDown) {
+        if (Phaser.Input.Keyboard.JustDown(this.controls.space)) {
             this.onShoot();
         }
         //set velocity enemy per coseno timestamp 
     }
 
     onShoot() {
-            const mushroom = this.physics.add.sprite(this.player.x - 10, this.player.y -10, 'mushroom').setScale(0.8).setCollideWorldBounds(true);
-            mushroom.setData('type', 'mushroom');
-            this.physics.add.collider(mushroom, this.obstacle)
-            this.physics.world.on('collide', (gameObject1: Phaser.GameObjects.GameObject, gameObject2: Phaser.GameObjects.GameObject) =>
-        {
-            if ((gameObject1.getData('type') !== 'obstacle') && (gameObject1.getData('type') !== 'mushroom')) {
-                gameObject1.destroy();
-            }
+        const mushroom = this.physics.add.sprite(this.player.x - 10, this.player.y -10, 'mushroom')
+            .setScale(0.8)
+            .setCollideWorldBounds(true);
+        mushroom.setVelocityY(150);
+        mushroom.setData('type', 'mushroom');
+        this.projectiles.push(mushroom);
 
-            if ((gameObject2.getData('type') !== 'obstacle') && (gameObject2.getData('type') !== 'mushroom')) {
-                gameObject2.destroy();
+        // Collider ostacolo
+        this.physics.add.collider(mushroom, this.obstacle, (mushroomObj, obstacleObj) => {
+            console.log('COLPITO OSTACOLO!', obstacleObj);
+            mushroomObj.destroy();
+        });
+
+        // Collider nemico
+        this.physics.add.collider(mushroom, this.enemy, (mushroomObj, enemyObj) => {
+            console.log('COLPITO NEMICO!', enemyObj);
+            mushroomObj.destroy();
+
+            const enemy = enemyObj as Phaser.GameObjects.GameObject;
+            const life = enemy.getData('life');
+            enemy.setData('life', life - 1);
+            if(enemy.getData('life') <= 0) {
+                enemy.destroy();
+                console.log('NEMICO DISTRUTTO!');
             }
         });
     }
