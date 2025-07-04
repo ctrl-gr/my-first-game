@@ -10,6 +10,9 @@ export class Game extends Scene
     obstacle: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     controls: Phaser.Types.Input.Keyboard.CursorKeys;
     projectiles: Phaser.Physics.Arcade.Sprite[] = [];
+    path: Phaser.Curves.Path;
+    graphics: Phaser.GameObjects.Graphics
+    follower: any;
 
     constructor ()
     {
@@ -18,7 +21,7 @@ export class Game extends Scene
 
     preload ()
     {
-        this.load.setBaseURL('http://localhost:8081');
+        this.load.setBaseURL('http://localhost:8080');
         this.load.spritesheet('cat', 'assets/cat.png', { frameWidth: 32, frameHeight: 32 });
         this.load.spritesheet('mushroom', 'assets/mushroom.png', { frameWidth: 80, frameHeight: 64 });
         this.load.spritesheet('plant', 'assets/plant.png', { frameWidth: 44, frameHeight: 42 });
@@ -55,16 +58,54 @@ export class Game extends Scene
         this.obstacle.setPushable(false);
         this.obstacle.setData('type', 'obstacle');
         this.obstacle.body.setAllowGravity(false);
-        
-        
+
+        this.graphics = this.add.graphics();
+        this.follower = { t: 0, vec: new Phaser.Math.Vector2() };
+        this.path = new Phaser.Curves.Path(465, 761);
+        this.path.lineTo(546,541);
+        this.path.lineTo(530,333);
+        this.path.lineTo(332,230);
+        this.path.lineTo(208,174);
+        this.path.lineTo(173,64);
+
+            this.tweens.add({
+            targets: this.follower,
+            t: 1,
+            ease: 'Sine.easeInOut',
+            duration: 4000,
+            yoyo: true,
+            repeat: -1
+        });
+
         this.input.on('pointerup', () =>
         {
             this.onShoot()
         });
 
+        this.input.on('pointerdown', (event: Phaser.Input.Pointer) => {
+            console.log('x and y', event.x, event.y);
+        })
+    }
+
+    createPath() {
+        // todo
+    }
+
+    randomizePath() {
+        // draw paths and switch between them randomly
+        // paths with platforms
     }
 
     update() {
+        this.graphics.clear();
+        this.graphics.lineStyle(2, 0xffffff, 1);
+
+        this.path.draw(this.graphics);
+
+        this.path.getPoint(this.follower.t, this.follower.vec);
+        this.enemy.x = this.follower.vec.x
+        this.enemy.y = this.follower.vec.y
+
         this.player.setVelocity(0,0);
         if (this.controls.left.isDown) {
             this.player.setVelocity(-100, 0);
